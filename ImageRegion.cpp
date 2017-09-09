@@ -1,15 +1,182 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>  // for abs()
 #include <opencv2/opencv.hpp>
 
 using namespace cv;
 using namespace std;
 
-//void show_mat(const cv::Mat &image, std::string const &win_name);
-//cv::Mat &invert_mat(cv::Mat &mat);
-//cv::Mat& invert_mat_pointer(cv::Mat &mat);
+class CPoint
+{
+    //private:
+	public:
+        int x, y;
+    public:
+        CPoint() : x(0), y(0) {}
+        CPoint(int x, int y) : x(x), y(y) {}
+};
 
+int searchRegion( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
+{
+	int channels = imIn.channels();
+	int nRows    = imIn.rows;
+    int nCols    = imIn.cols;
+
+	/*  we assume that image is RGB */
+	if( channels != 3 )
+		return -1;   // we assume that program serves only RGB images
+
+	Vec3b* rin;
+	Vec3b* rinp;  // prevoius row
+	Vec3b* rinn;  // next row
+	uchar* rout;
+	uchar* routp;
+	uchar* routn;
+
+	list<CPoint> tListOld;
+	list<CPoint> tListNew;
+
+	CPoint cp(pX,pY);
+
+	tListOld.push_back( cp );
+	int x = 0, y=0;
+
+	while(1)
+	{
+		//int i, j;
+		list<CPoint>::iterator iter = tListOld.begin();
+
+		for( ; iter!=tListOld.end(); iter++ ) // the whole list to be analized
+		{
+			x = iter->x;
+			y = iter->y;
+
+			rin = imIn.ptr<Vec3b>(y);  // row in
+			rout = imOut.ptr<uchar>(y); // row out
+
+			// modify output
+			rout[x] = 255;
+
+			// check neighbours
+			// ...
+			if( y > 0 )
+			{
+				rinp = imIn.ptr<Vec3b>(y-1);  // previous
+				routp = imOut.ptr<uchar>(y-1); // 
+				if( routp[x] != 0 )
+				{
+					;  // already served
+				}
+				else if( abs( rinp[x][0]-rin[x][0]) <= tf &&  abs( rinp[x][1]-rin[x][1]) <= tf && abs( rinp[x][2]-rin[x][2]) <= tf ) 
+				{
+					cp.x = x; 
+					cp.y = y-1;
+					tListNew.push_back( cp );
+					routp[x] = 255;  // 
+				}
+				else
+					routp[x] = 127;  // means, the point was checked
+			}
+
+			if( y < nRows-1 )
+			{
+				rinn = imIn.ptr<Vec3b>(y+1);  // next
+				routn = imOut.ptr<uchar>(y+1); // 
+				if( routn[x] != 0 )
+				{
+					;  // already served
+				}
+				else if( abs( rinn[x][0]-rin[x][0]) <= tf &&  abs( rinn[x][1]-rin[x][1]) <= tf && abs( rinn[x][2]-rin[x][2]) <= tf ) 
+				{
+					cp.x = x; 
+					cp.y = y+1;
+					tListNew.push_back( cp );
+					routn[x] = 255;  // 
+				}
+				else
+					routn[x] = 127;  // means, the point was checked
+			}
+
+			if( x > 0 )
+			{
+				rin = imIn.ptr<Vec3b>(y);  // 
+				rout = imOut.ptr<uchar>(y); // 
+				if( rout[x-1] != 0 )
+				{
+					;  // already served
+				}
+				else if( abs( rin[x-1][0]-rin[x][0]) <= tf &&  abs( rin[x-1][1]-rin[x][1]) <= tf && abs( rin[x-1][2]-rin[x][2]) <= tf ) 
+				{
+					cp.x = x-1; 
+					cp.y = y;
+					tListNew.push_back( cp );
+					rout[x-1] = 255;  // 
+				}
+				else
+					rout[x-1] = 127;  // means, the point was checked
+			}
+
+			if( x < nCols-1 )
+			{
+				rin = imIn.ptr<Vec3b>(y);  // 
+				rout = imOut.ptr<uchar>(y); // 
+				if( rout[x+1] != 0 )
+				{
+					;  // already served
+				}
+				else if( abs( rin[x+1][0]-rin[x][0]) <= tf &&  abs( rin[x+1][1]-rin[x][1]) <= tf && abs( rin[x+1][2]-rin[x][2]) <= tf ) 
+				{
+					cp.x = x+1; 
+					cp.y = y;
+					tListNew.push_back( cp );
+					rout[x+1] = 255;  // 
+				}
+				else
+					rout[x+1] = 127;  // means, the point was checked
+			}
+
+		}
+		if( tListNew.size() == 0 )
+			return 0;
+
+		tListOld = tListNew;
+		tListNew.clear();
+
+
+		/*
+		for (i = 0; i < nRows; ++i)
+		{
+			p = imIn.ptr<Vec3b>(i);
+			o = imOut.ptr<uchar>(i);
+			for (j = 0; j < nCols; ++j)
+			{
+				//if( i < pY && j < pX || i > pY && j > pX )
+				if( p[j][0] + p[j][1] + p[j][2] < 370 )
+				{
+				//o[j][0] = ~p[j][0];
+				//o[j][1] = ~p[j][1];
+				//o[j][2] = ~p[j][2];
+					o[j] = 255;
+
+				}
+				else
+				{
+				//p[j][0] = ~p[j][0];
+				//p[j][1] = ~p[j][1];
+				//p[j][2] = ~p[j][2];
+					o[j] = 128;
+				}
+			}
+		}
+		*/
+
+		//return 0;
+
+	}
+
+	return 0;
+}
 
 void show_mat(const cv::Mat &image, std::string const &win_name) {
     namedWindow(win_name, WINDOW_AUTOSIZE);
@@ -99,7 +266,7 @@ int main( int argc, char **argv ) {
 	std::string outFileName;
 
 	int tf=0;
-	int channels = 0;
+	//int channels = 0;
 	int nRows    = 0;
 	int nCols    = 0;
 	int pX = nCols, pY = nRows;  // coordinates of origination point
@@ -139,7 +306,6 @@ int main( int argc, char **argv ) {
 
 		case 3:
 			//..."3 = find region with similar color,"
-			channels = image.channels();
 			nRows    = image.rows;
 			nCols    = image.cols;
 
@@ -188,10 +354,10 @@ int main( int argc, char **argv ) {
 			/*
 			TBD:
 			Searching for similar area as it is needed every time
-
-			region = searchRegion( image, pX, pY, tf );
-
 			*/
+
+			searchRegion( image, pX, pY, tf, region );
+
 
 			cout << endl << "The region has been found!" << endl << endl;
 			isRegionDetermined = 1;
@@ -251,28 +417,15 @@ int main( int argc, char **argv ) {
 
 	//-----------------
 
-
-	/*
-
-
-	show_mat(image, "Input");
-
     //image = invert_mat_pointer(image);
 	//image = invert_mat(image);
 
-    show_mat(region, "Output");
-
-	std::string outFileName;
-	cout << "Enter the file name for output:";
-	cin >> outFileName;
-
-	imwrite(outFileName, region);
-	//imwrite("out.png", image);
-	//cvSaveImage(argv[2], &image);
-	*/
-
     return 0;
 }
+
+//void show_mat(const cv::Mat &image, std::string const &win_name);
+//cv::Mat &invert_mat(cv::Mat &mat);
+//cv::Mat& invert_mat_pointer(cv::Mat &mat);
 
 /*
 cv::Mat& invert_mat(cv::Mat &mat) {
