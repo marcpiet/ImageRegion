@@ -18,8 +18,69 @@ void show_mat(const cv::Mat &image, std::string const &win_name) {
 	destroyWindow(win_name);
 }
 
+int showMenu( int iFileLoaded, int iRegDetermined, int iPerimDetermined )
+{
+	int iChoice = 0;
+	int iAllowTab[8];// = {0};
 
-int main(int argc, char **argv) {
+	do
+	{
+		memset( iAllowTab, 0, sizeof(iAllowTab) );
+
+		cout << "What do you want to do now? Choose from options:" << endl;
+
+		cout << "0 = exit application," << endl;
+		iAllowTab[0] = 1;  // exit possible always
+
+		cout << "1 = load an image," << endl;
+		iAllowTab[1] = 1;  // loading possible always
+
+		if( iFileLoaded )
+		{
+		cout << "2 = show loaded image," << endl;
+		iAllowTab[2] = 1;  // 
+
+		cout << "3 = find region with similar color," << endl;
+		iAllowTab[3] = 1;  // 
+
+		if( iRegDetermined )
+		{
+		cout << "4 = show region," << endl;
+		iAllowTab[4] = 1;  // 
+
+		cout << "5 = save region to the file," << endl;
+		iAllowTab[5] = 1;  // 
+
+		cout << "6 = find perimeter," << endl;
+		iAllowTab[6] = 1;  // 
+
+		if( iPerimDetermined )
+		{
+		cout << "7 = show perimeter," << endl;
+		iAllowTab[7] = 1;  // 
+
+		cout << "8 = save perimeter to the file," << endl;
+		iAllowTab[8] = 1;  // 
+		}
+		}
+		}
+
+		cout << "Your choice is... ";
+
+		cin >> iChoice;
+		if( iChoice < 0 || iChoice > 8 || iAllowTab[iChoice] == 0 )
+		{
+			cout << "The value outside of allowed range. Try again." << endl;
+			continue;
+		}
+		break;
+	}
+	while(1);
+
+	return iChoice;
+}
+
+int main( int argc, char **argv ) {
 //    if (argc != 3) {
 //        printf("usage: Opencv_Test <Image_Path> <Output_Path>\n");
 //        return -1;
@@ -29,234 +90,166 @@ int main(int argc, char **argv) {
 	int isInputFileLoaded = 0,
 		isRegionDetermined = 0,
 		isPerimeterDetermined = 0;
+
 	Mat image;
-
-	//do  // the main loop of the consol application interface
-	//{
-
-
-	//}
-	//while( 1 );
-
-	//-----------------
+	Mat region;
+	Mat perimeter;
 
 	std::string inFileName;
-	cout << "Enter the input image file name (using quotation marks): ";
-	cin >> inFileName;
-
-    image = imread(inFileName, 1);
-
-    if (!image.data) {
-        printf("No image data (warning: OpenCV recognize files by extensions)\n");
-        return -1;
-    }
-
-	do
-	{
-		cout << "What do you want to do now? Choose from options:" << endl 
-			 << "1 = show loaded image," << endl
-			 << "2 = find region with similar color," << endl
-			 << "0 = exit application," << endl
-			 << "Your choice is... ";
-		cin >> iChoice;
-		if( iChoice < 0 || iChoice > 2 )
-		{
-			cout << "The value outside of allowed range. Try again." << endl;
-			continue;
-		}
-		break;
-	}
-	while(1);
-
-	if( iChoice == 0 )
-		return 0;
-
-	if( iChoice == 1 )
-	{
-		show_mat(image, "Input");
-		//waitKey(0);
-
-	}
-	else if( iChoice == 2 )
-	{
-		goto FIND_REGION;
-	}
-
-	do
-	{
-		cout << "What do you want to do now? Choose from options:" << endl 
-			 << "2 = find region with similar color," << endl
-			 << "0 = exit application," << endl
-			 << "Your choice is... ";
-		cin >> iChoice;
-		if( iChoice != 0 && iChoice != 2 )
-		{
-			cout << "The value outside of allowed range. Try again." << endl;
-			continue;
-		}
-		break;
-	}
-	while(1);
-
-	if( iChoice == 0 )
-		return 0;
-
-	//else iChoice == 2
-
-	//------------- FIND REGION
-FIND_REGION:
-
-	int channels = image.channels();
-	int nRows    = image.rows;
-    int nCols    = image.cols;
-
-	int pX = nCols, pY = nRows;  // coordinates of origination point
-
-	do
-	{
-		cout << "Enter X coordinate of pixel (to begin searching a whole similar region)" << endl << " [0-" << (nCols-1) << "]: ";
-		cin >> pX;
-		if( pX < 0 || pX > nCols-1 )
-		{
-			cout << "The value outside of allowed range. Try again." << endl;
-			continue;
-		}
-		break;
-	} while(1);
-
-	do
-	{
-		cout << "Enter Y coordinate of pixel (to begin searching a whole similar region)" << endl << " [0-" << (nRows-1) << "]: ";
-		cin >> pY;
-		if( pY < 0 || pY > nRows-1 )
-		{
-			cout << "The value outside of allowed range. Try again." << endl;
-			continue;
-		}
-		break;
-	} while(1);
+	std::string outFileName;
 
 	int tf=0;
-	do
+	int channels = 0;
+	int nRows    = 0;
+	int nCols    = 0;
+	int pX = nCols, pY = nRows;  // coordinates of origination point
+
+	do  // the main loop of the console application interface
 	{
-		cout << "Enter the color tolerance factor" << endl << " [1-100]: ";
-		cin >> tf;
-		if( tf < 1 || tf > 100 )
+		iChoice = showMenu( isInputFileLoaded, isRegionDetermined, isPerimeterDetermined );
+
+		switch( iChoice )
 		{
-			cout << "The value outside of allowed range. Try again." << endl;
-			continue;
+		case 0:
+			//..."0 = exit application,"
+			return 0;
+
+		case 1:
+			//..."1 = load an image,"
+			cout << "Enter the input image file name: ";
+			cin >> inFileName;
+
+			image = imread( inFileName, 1 );
+
+			if( !image.data )
+			{
+				printf( "No image data (warning: OpenCV recognize files by extensions)\n" );
+				//return -1;
+				break;
+			}
+			isInputFileLoaded = 1;
+			isRegionDetermined = 0;
+			isPerimeterDetermined = 0;
+			break;
+
+		case 2:
+			//..."2 = show loaded image,"
+			show_mat( image, "Input image" );
+			break;
+
+		case 3:
+			//..."3 = find region with similar color,"
+			channels = image.channels();
+			nRows    = image.rows;
+			nCols    = image.cols;
+
+			do
+			{
+				cout << "Enter X coordinate of pixel (to begin searching a whole similar region)" << endl << " [0-" << (nCols-1) << "]: ";
+				cin >> pX;
+				if( pX < 0 || pX > nCols-1 )
+				{
+					cout << "The value outside of allowed range. Try again." << endl;
+					continue;
+				}
+				break;
+			} while(1);
+
+			do
+			{
+				cout << "Enter Y coordinate of pixel (to begin searching a whole similar region)" << endl << " [0-" << (nRows-1) << "]: ";
+				cin >> pY;
+				if( pY < 0 || pY > nRows-1 )
+				{
+					cout << "The value outside of allowed range. Try again." << endl;
+					continue;
+				}
+				break;
+			} while(1);
+
+			do
+			{
+				cout << "Enter the color tolerance factor" << endl << " [1-100]: ";
+				cin >> tf;
+				if( tf < 1 || tf > 100 )
+				{
+					cout << "The value outside of allowed range. Try again." << endl;
+					continue;
+				}
+				break;
+			} while(1);
+
+			cout << "DBG: x=" << pX << ", y=" << pY << ", tf=" << tf << endl;
+
+			//========================================================
+
+			region = Mat::zeros( nRows,nCols,CV_8UC1 );
+
+			/*
+			TBD:
+			Searching for similar area as it is needed every time
+
+			region = searchRegion( image, pX, pY, tf );
+
+			*/
+
+			cout << endl << "The region has been found!" << endl << endl;
+			isRegionDetermined = 1;
+
+			//=======================================
+			break;
+
+		case 4:
+			//..."4 = show region,"
+			show_mat( region, "Similar region" );
+			break;
+		
+		case 5:
+			//..."5 = save region to the file,"
+			cout << "Enter the file name for output:";
+			cin >> outFileName;
+			imwrite( outFileName, region );
+			break;
+
+		case 6:
+			//..."6 = find perimeter,"
+
+			//========================================================
+
+			perimeter = Mat::zeros( nRows,nCols,CV_8UC1 );
+
+			/*
+			TBD:
+			Searching for perimeter of area with similar color
+			perimeter = searchPerimeter( region, value ); //, pX, pY, tf );
+			*/
+
+			cout << endl << "The perimeter has been determined!" << endl << endl;
+
+			//=======================================
+			isPerimeterDetermined = 1;
+			break;
+
+		case 7:
+			//..."7 = show perimeter,"
+			show_mat( perimeter, "Area perimeter" );
+			break;
+
+		case 8:
+			//..."8 = save perimeter to the file,"
+			cout << "Enter the file name for the output:";
+			cin >> outFileName;
+			imwrite( outFileName, perimeter );
+			break;
+
+		default:
+			;
 		}
-		break;
-	} while(1);
 
-	cout << "DBG: x=" << pX << ", y=" << pY << ", tf=" << tf << endl;
-
-//========================================================
-
-	Mat region;
-	region = Mat::zeros( nRows,nCols,CV_8UC1 );
-
-	/*
-	TBD:
-	Searching for similar area as it is needed every time
-
-	region = searchRegion( image, pX, pY, tf );
-
-	*/
-
-	cout << endl << "The region has been found!" << endl << endl;
-
-//=======================================
-
-	do
-	{
-		cout << "What do you want to do now? Choose from options:" << endl 
-			 << "3 = show region," << endl
-			 << "4 = find perimeter," << endl
-			 << "5 = save result to the file," << endl
-			 << "0 = exit application," << endl
-			 << "Your choice is... ";
-		cin >> iChoice;
-		if( iChoice != 0 && iChoice != 3 && iChoice != 4 && iChoice != 5 )
-		{
-			cout << "The value outside of allowed range. Try again." << endl;
-			continue;
-		}
-		break;
 	}
-	while(1);
+	while( 1 );
 
-	if( iChoice == 0 )
-		return 0;
-
-	if( iChoice == 3 )
-	{
-		show_mat(region, "Similar region");
-	}
-	else if( iChoice == 5 ) 
-	{
-		std::string outFileName;
-		cout << "Enter the file name for output (using quotation marks):";
-		cin >> outFileName;
-		imwrite( outFileName, region );
-	}
-	//else iChoice == 4 // find perimeter
-
-//========================================================
-
-	Mat perimeter;
-	perimeter = Mat::zeros( nRows,nCols,CV_8UC1 );
-
-	/*
-	TBD:
-	Searching for perimeter of area with similar color
-
-	perimeter = searchPerimeter( region, value ); //, pX, pY, tf );
-
-	*/
-
-	cout << endl << "The perimeter has been determined!" << endl << endl;
-
-//=======================================
-MENU:
-	do
-	{
-		cout << "What do you want to do now? Choose from options:" << endl 
-			 << "6 = show perimeter," << endl
-			 << "7 = save perimeter to the file," << endl
-			 << "0 = exit application," << endl
-			 << "Your choice is... ";
-		cin >> iChoice;
-		if( iChoice != 0 && iChoice != 6 && iChoice != 7 )
-		{
-			cout << "The value outside of allowed range. Try again." << endl;
-			continue;
-		}
-		break;
-	}
-	while(1);
-
-	if( iChoice == 0 )
-		return 0;
-
-	if( iChoice == 6 )
-	{
-		show_mat(perimeter, "Area perimeter");
-	}
-	else if( iChoice == 7 ) 
-	{
-		std::string outFileName;
-		cout << "Enter the file name for the output (using quotation marks):";
-		cin >> outFileName;
-		imwrite( outFileName, perimeter );
-	}
-
-
-	goto MENU;
-
-
-
-
+	//-----------------
 
 
 	/*
@@ -270,7 +263,7 @@ MENU:
     show_mat(region, "Output");
 
 	std::string outFileName;
-	cout << "Enter the file name for output (using quotation marks):";
+	cout << "Enter the file name for output:";
 	cin >> outFileName;
 
 	imwrite(outFileName, region);
