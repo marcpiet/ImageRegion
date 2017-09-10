@@ -9,15 +9,13 @@ using namespace std;
 
 class CPoint
 {
-    //private:
 	public:
         int x, y;
-    public:
         CPoint() : x(0), y(0) {}
         CPoint(int x, int y) : x(x), y(y) {}
 };
 
-int searchRegion( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
+int find_region( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 {
 	int channels = imIn.channels();
 	int nRows    = imIn.rows;
@@ -25,34 +23,41 @@ int searchRegion( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 
 	/*  we assume that image is RGB */
 	if( channels != 3 )
+	{
+		cout << "Only RGB images can be processed" << endl;
 		return -1;   // we assume that program serves only RGB images
+	}
 
-	Vec3b* rin;
-	Vec3b* rinp;  // prevoius row
-	Vec3b* rinn;  // next row
-	uchar* rout;
-	uchar* routp;
-	uchar* routn;
+	Vec3b* rin;   // input row
+	uchar* rout;  // output row
+
+	rin = imIn.ptr<Vec3b>(pY);  // row in
+
+	int refB = rin[pX][0];
+	int	refG = rin[pX][1];
+	int	refR = rin[pX][2];
 
 	list<CPoint> tListOld;
 	list<CPoint> tListNew;
 
 	CPoint cp(pX,pY);
-
 	tListOld.push_back( cp );
+
 	int x = 0, y=0;
+
+	int iter_counter = 0;
+	int point_counter;
 
 	while(1)
 	{
-		//int i, j;
-		list<CPoint>::iterator iter = tListOld.begin();
+		point_counter = 0;   // for debug 
 
+		list<CPoint>::iterator iter = tListOld.begin();
 		for( ; iter!=tListOld.end(); iter++ ) // the whole list to be analized
 		{
 			x = iter->x;
 			y = iter->y;
 
-			rin = imIn.ptr<Vec3b>(y);  // row in
 			rout = imOut.ptr<uchar>(y); // row out
 
 			// modify output
@@ -62,40 +67,40 @@ int searchRegion( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 			// ...
 			if( y > 0 )
 			{
-				rinp = imIn.ptr<Vec3b>(y-1);  // previous
-				routp = imOut.ptr<uchar>(y-1); // 
-				if( routp[x] != 0 )
+				rin = imIn.ptr<Vec3b>(y-1);  // previous
+				rout = imOut.ptr<uchar>(y-1); // 
+				if( rout[x] != 0 )
 				{
 					;  // already served
 				}
-				else if( abs( rinp[x][0]-rin[x][0]) <= tf &&  abs( rinp[x][1]-rin[x][1]) <= tf && abs( rinp[x][2]-rin[x][2]) <= tf ) 
+				else if( abs( rin[x][0]-refB) <= tf &&  abs( rin[x][1]-refG) <= tf && abs( rin[x][2]-refR) <= tf ) 
 				{
 					cp.x = x; 
 					cp.y = y-1;
 					tListNew.push_back( cp );
-					routp[x] = 255;  // 
+					rout[x] = 255;  // 
 				}
 				else
-					routp[x] = 127;  // means, the point was checked
+					rout[x] = 1;  // means, the point was checked
 			}
 
 			if( y < nRows-1 )
 			{
-				rinn = imIn.ptr<Vec3b>(y+1);  // next
-				routn = imOut.ptr<uchar>(y+1); // 
-				if( routn[x] != 0 )
+				rin = imIn.ptr<Vec3b>(y+1);  // next
+				rout = imOut.ptr<uchar>(y+1); // 
+				if( rout[x] != 0 )
 				{
 					;  // already served
 				}
-				else if( abs( rinn[x][0]-rin[x][0]) <= tf &&  abs( rinn[x][1]-rin[x][1]) <= tf && abs( rinn[x][2]-rin[x][2]) <= tf ) 
+				else if( abs(rin[x][0]-refB) <= tf &&  abs(rin[x][1]-refG) <= tf && abs(rin[x][2]-refR) <= tf ) 
 				{
 					cp.x = x; 
 					cp.y = y+1;
 					tListNew.push_back( cp );
-					routn[x] = 255;  // 
+					rout[x] = 255;  // 
 				}
 				else
-					routn[x] = 127;  // means, the point was checked
+					rout[x] = 1;  // means, the point was checked
 			}
 
 			if( x > 0 )
@@ -106,7 +111,7 @@ int searchRegion( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 				{
 					;  // already served
 				}
-				else if( abs( rin[x-1][0]-rin[x][0]) <= tf &&  abs( rin[x-1][1]-rin[x][1]) <= tf && abs( rin[x-1][2]-rin[x][2]) <= tf ) 
+				else if( abs(rin[x-1][0]-refB) <= tf &&  abs(rin[x-1][1]-refG) <= tf && abs(rin[x-1][2]-refR) <= tf ) 
 				{
 					cp.x = x-1; 
 					cp.y = y;
@@ -114,7 +119,7 @@ int searchRegion( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 					rout[x-1] = 255;  // 
 				}
 				else
-					rout[x-1] = 127;  // means, the point was checked
+					rout[x-1] = 1;  // means, the point was checked
 			}
 
 			if( x < nCols-1 )
@@ -125,7 +130,7 @@ int searchRegion( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 				{
 					;  // already served
 				}
-				else if( abs( rin[x+1][0]-rin[x][0]) <= tf &&  abs( rin[x+1][1]-rin[x][1]) <= tf && abs( rin[x+1][2]-rin[x][2]) <= tf ) 
+				else if( abs(rin[x+1][0]-refB) <= tf &&  abs(rin[x+1][1]-refG) <= tf && abs(rin[x+1][2]-refR) <= tf ) 
 				{
 					cp.x = x+1; 
 					cp.y = y;
@@ -133,50 +138,163 @@ int searchRegion( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 					rout[x+1] = 255;  // 
 				}
 				else
-					rout[x+1] = 127;  // means, the point was checked
+					rout[x+1] = 1;  // means, the point was checked
 			}
 
+			point_counter++;
 		}
+
+		iter_counter++;
+
+		cout << "DBG: iter no. " << iter_counter << ", number of added points: " << point_counter << endl;
+
 		if( tListNew.size() == 0 )
-			return 0;
+			break;
 
 		tListOld = tListNew;
 		tListNew.clear();
+	}
 
+	int i,j;
+	
+	// erasing of markers that pixel has been already checked
+	for( i=0; i<nRows; i++ )
+	{
+		rout = imOut.ptr<uchar>(i);
+		for( j=0; j<nCols; j++ )
+			if( rout[j] == 1 )
+				rout[j] = 0;
+	}
 
-		/*
-		for (i = 0; i < nRows; ++i)
+	/*
+	for( i=0; i<nRows; i++ )
+	{
+		p = imIn.ptr<Vec3b>(i);
+		rout = imOut.ptr<uchar>(i);
+		for( j=0; j<nCols; j++ )
 		{
-			p = imIn.ptr<Vec3b>(i);
-			o = imOut.ptr<uchar>(i);
-			for (j = 0; j < nCols; ++j)
+			//if( i < pY && j < pX || i > pY && j > pX )
+			if( p[j][0] + p[j][1] + p[j][2] < 370 )
 			{
-				//if( i < pY && j < pX || i > pY && j > pX )
-				if( p[j][0] + p[j][1] + p[j][2] < 370 )
-				{
 				//o[j][0] = ~p[j][0];
 				//o[j][1] = ~p[j][1];
 				//o[j][2] = ~p[j][2];
-					o[j] = 255;
-
-				}
-				else
-				{
+				o[j] = 255;
+			}
+			else
+			{
 				//p[j][0] = ~p[j][0];
 				//p[j][1] = ~p[j][1];
 				//p[j][2] = ~p[j][2];
-					o[j] = 128;
+				o[j] = 128;
+			}
+		}
+	}
+	*/
+
+	return 0;
+}
+
+//--------------------------------------------
+
+int find_perimeter( cv::Mat& imIn, cv::Mat& imOut )
+{
+	int channels = imIn.channels();
+	int nRows    = imIn.rows;
+    int nCols    = imIn.cols;
+
+	/*  we assume that image is gray scale */
+	if( channels != 1 )
+	{
+		cout << "Only GRAY SCALE images can be processed" << endl;
+		return -1;   // we assume that this method serves only gray scale objects
+	}
+
+	uchar* rinp;  // input row (previous)
+	uchar* rin;   // input row
+	uchar* rinn;  // input row (next)
+	uchar* rout;  // output row
+
+	/*
+	int cU = 0,
+		cUR = 0,
+		cR = 0,
+		cDR = 0,
+		cD = 0,
+		cDL = 0,
+		cL = 0,
+		cUL = 0;
+		*/
+
+	int i, j;
+
+	for( i=0; i<nRows; i++ )
+	{
+		/*
+		if( i == 0 )
+			rinp = NULL;
+		else
+			rinp = imIn.ptr<uchar>(i-1);
+		*/
+		rin = imIn.ptr<uchar>(i);
+		/*
+		if( i == nRows-1 )
+			rinn = NULL;
+		else
+			rinn = imIn.ptr<uchar>(i+1);
+		*/
+
+		for( j=0; j<nCols; j++ )
+		{
+			if( rin[j] == 255 )
+			{
+				if( i == 0 || i == nRows-1 || j == 0 || j == nCols-1 )  // the edge of image with pixel within region
+				{
+					rout = imOut.ptr<uchar>(i);
+					rout[j] = 255;
+				}
+				else
+				{
+					rinp = imIn.ptr<uchar>(i-1);
+					rinn = imIn.ptr<uchar>(i+1);
+
+					/*
+					if( i == 0 )
+						cUL = cU = cUR = 0;
+					if( j == 0 )
+						cUL = cL = cDL = 0;
+					if( i == nRows-1 )
+						cDL = cD = cDR = 0;
+					if( j == nCols-1 )
+						cUR = cR = cDR = 0;
+					*/
+					/*
+					cU = rinp[j];
+					cUR = rinp[j+1];
+					cR = rin[j+1];
+					cDR = rinn[j+1];
+					cD = rinn[j];
+					cDL = rinn[j-1];
+					cL = rin[j-1];
+					cUL = rinp[j-1];
+					*/
+
+					//if( cU == 0 || cUR == 0 || cR == 0 || cDR == 0 || cD == 0 || cDL == 0 || cL == 0 || cUL == 0 )
+					if( rinp[j] == 0 || rinp[j+1] == 0 || rin[j+1] == 0 || rinn[j+1] == 0 || rinn[j] == 0 || rinn[j-1] == 0 || rin[j-1] == 0 || rinp[j-1] == 0 )
+					{
+						rout = imOut.ptr<uchar>(i);
+						rout[j] = 255;
+					}
 				}
 			}
 		}
-		*/
-
-		//return 0;
-
 	}
 
 	return 0;
 }
+
+//-----------------------------
+
 
 void show_mat(const cv::Mat &image, std::string const &win_name) {
     namedWindow(win_name, WINDOW_AUTOSIZE);
@@ -194,7 +312,7 @@ int showMenu( int iFileLoaded, int iRegDetermined, int iPerimDetermined )
 	{
 		memset( iAllowTab, 0, sizeof(iAllowTab) );
 
-		cout << "What do you want to do now? Choose from options:" << endl;
+		cout << endl << "What do you want to do now? Choose from options:" << endl;
 
 		cout << "0 = exit application," << endl;
 		iAllowTab[0] = 1;  // exit possible always
@@ -204,15 +322,15 @@ int showMenu( int iFileLoaded, int iRegDetermined, int iPerimDetermined )
 
 		if( iFileLoaded )
 		{
-		cout << "2 = show loaded image," << endl;
+		cout << "2 = display loaded image," << endl;
 		iAllowTab[2] = 1;  // 
 
-		cout << "3 = find region with similar color," << endl;
+		cout << "3 = find region of similar color," << endl;
 		iAllowTab[3] = 1;  // 
 
 		if( iRegDetermined )
 		{
-		cout << "4 = show region," << endl;
+		cout << "4 = display region (pixels)," << endl;
 		iAllowTab[4] = 1;  // 
 
 		cout << "5 = save region to the file," << endl;
@@ -223,7 +341,7 @@ int showMenu( int iFileLoaded, int iRegDetermined, int iPerimDetermined )
 
 		if( iPerimDetermined )
 		{
-		cout << "7 = show perimeter," << endl;
+		cout << "7 = display perimeter (pixels)," << endl;
 		iAllowTab[7] = 1;  // 
 
 		cout << "8 = save perimeter to the file," << endl;
@@ -247,29 +365,45 @@ int showMenu( int iFileLoaded, int iRegDetermined, int iPerimDetermined )
 	return iChoice;
 }
 
-int main( int argc, char **argv ) {
-//    if (argc != 3) {
-//        printf("usage: Opencv_Test <Image_Path> <Output_Path>\n");
-//        return -1;
-//    }
+/*
+class CImageRGB
+{
+private:
+	;
+protected:
+	;
+public:
+	;
+}
+*/
 
-	int iChoice = 0;
-	int isInputFileLoaded = 0,
-		isRegionDetermined = 0,
-		isPerimeterDetermined = 0;
+//============================================================================================
+
+int main( int argc, char **argv )
+{
+    if( argc != 1 ) 
+	{
+        cout << "Usage: just launch ImageRegion app and follow with using available options (menu will be shown)." << endl;
+        return -1;
+    }
 
 	Mat image;
 	Mat region;
 	Mat perimeter;
 
-	std::string inFileName;
-	std::string outFileName;
+	string inFileName;
+	string outFileName;
 
-	int tf=0;
-	//int channels = 0;
-	int nRows    = 0;
-	int nCols    = 0;
+	int iChoice = 0;
+
+	int isInputFileLoaded = 0,
+		isRegionDetermined = 0,
+		isPerimeterDetermined = 0;
+
+	int nRows = 0;
+	int nCols = 0;
 	int pX = nCols, pY = nRows;  // coordinates of origination point
+	int tf = 0;   // tolerance factor
 
 	do  // the main loop of the console application interface
 	{
@@ -277,13 +411,11 @@ int main( int argc, char **argv ) {
 
 		switch( iChoice )
 		{
-		case 0:
-			//..."0 = exit application,"
+		case 0:		// exit application
 			return 0;
 
-		case 1:
-			//..."1 = load an image,"
-			cout << "Enter the input image file name: ";
+		case 1:		// load an image
+			cout << "Enter the input image filename (with extension): ";
 			cin >> inFileName;
 
 			image = imread( inFileName, 1 );
@@ -299,19 +431,19 @@ int main( int argc, char **argv ) {
 			isPerimeterDetermined = 0;
 			break;
 
-		case 2:
-			//..."2 = show loaded image,"
+		case 2:		// show loaded image
 			show_mat( image, "Input image" );
 			break;
 
-		case 3:
-			//..."3 = find region with similar color,"
+		case 3:		// find region with similar color
 			nRows    = image.rows;
 			nCols    = image.cols;
 
+			cout << "Enter starting point for determining homogeneous region (in regards to pixels color)." << endl;
+
 			do
 			{
-				cout << "Enter X coordinate of pixel (to begin searching a whole similar region)" << endl << " [0-" << (nCols-1) << "]: ";
+				cout << "Enter X coordinate of pixel [0-" << (nCols-1) << "]: ";
 				cin >> pX;
 				if( pX < 0 || pX > nCols-1 )
 				{
@@ -323,7 +455,7 @@ int main( int argc, char **argv ) {
 
 			do
 			{
-				cout << "Enter Y coordinate of pixel (to begin searching a whole similar region)" << endl << " [0-" << (nRows-1) << "]: ";
+				cout << "Enter Y coordinate of pixel [0-" << (nRows-1) << "]: ";
 				cin >> pY;
 				if( pY < 0 || pY > nRows-1 )
 				{
@@ -335,7 +467,7 @@ int main( int argc, char **argv ) {
 
 			do
 			{
-				cout << "Enter the color tolerance factor" << endl << " [1-100]: ";
+				cout << "Enter the color tolerance factor [1-255]: ";
 				cin >> tf;
 				if( tf < 1 || tf > 100 )
 				{
@@ -345,64 +477,49 @@ int main( int argc, char **argv ) {
 				break;
 			} while(1);
 
-			cout << "DBG: x=" << pX << ", y=" << pY << ", tf=" << tf << endl;
+			//cout << "DBG: x=" << pX << ", y=" << pY << ", tf=" << tf << endl;
 
 			//========================================================
 
 			region = Mat::zeros( nRows,nCols,CV_8UC1 );
 
-			/*
-			TBD:
-			Searching for similar area as it is needed every time
-			*/
+			if( find_region( image, pX, pY, tf, region ) != 0 )
+				break;
 
-			searchRegion( image, pX, pY, tf, region );
+			cout << endl << "The region has been marked!" << endl << endl;
 
-
-			cout << endl << "The region has been found!" << endl << endl;
 			isRegionDetermined = 1;
+			isPerimeterDetermined = 0;
 
 			//=======================================
 			break;
 
-		case 4:
-			//..."4 = show region,"
+		case 4:		// show region
 			show_mat( region, "Similar region" );
 			break;
 		
-		case 5:
-			//..."5 = save region to the file,"
-			cout << "Enter the file name for output:";
+		case 5:		// save region to the file
+			cout << "Enter the output filename (with extension): ";
 			cin >> outFileName;
 			imwrite( outFileName, region );
 			break;
 
-		case 6:
-			//..."6 = find perimeter,"
-
-			//========================================================
-
+		case 6:		// find perimeter
 			perimeter = Mat::zeros( nRows,nCols,CV_8UC1 );
 
-			/*
-			TBD:
-			Searching for perimeter of area with similar color
-			perimeter = searchPerimeter( region, value ); //, pX, pY, tf );
-			*/
+			// Drawing perimeter of area with similar color
+			find_perimeter( region, perimeter ); //, pX, pY, tf );
 
 			cout << endl << "The perimeter has been determined!" << endl << endl;
 
-			//=======================================
 			isPerimeterDetermined = 1;
 			break;
 
-		case 7:
-			//..."7 = show perimeter,"
+		case 7:		// show perimeter
 			show_mat( perimeter, "Area perimeter" );
 			break;
 
-		case 8:
-			//..."8 = save perimeter to the file,"
+		case 8:		// save perimeter to the file
 			cout << "Enter the file name for the output:";
 			cin >> outFileName;
 			imwrite( outFileName, perimeter );
