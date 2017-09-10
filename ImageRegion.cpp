@@ -384,6 +384,150 @@ void save_to_text_file( Mat& image, string const& filename )
 
 /**
 Input:
+imIn	- reference to the matrix with input image data
+          (2-dimensional region determined within method find_region)
+smF     - smoothing factor,
+Output:
+imOut	- reference to the matrix where output data can be stored
+Returned values:
+0       - operation succedded,
+-1      - operation failed.
+*/
+int find_smooth_perimeter( Mat& imIn, int smF, Mat& imOut )
+{
+	int channels = imIn.channels();
+
+	/*  we assume that image is gray scale */
+	if( channels != 1 )
+	{
+		cout << "Only GRAY SCALE images can be processed" << endl;
+		return -1;   // we assume that this method serves only gray scale objects
+	}
+
+	int nRows = imIn.rows;
+    int nCols = imIn.cols;
+	imOut = Mat::zeros( nRows, nCols, CV_8UC1 );
+
+	Mat imWork = Mat::zeros( nRows, nCols, CV_8UC1 );
+
+	uchar* rin;   // input row
+	uchar* rout;  // output row
+
+	int i, j, k, l;              // counters
+	int smU, smR, smD, smL;      // limits for counters for local smoothing
+	int limU, limR, limD, limL;  // limits for counters for global smoothing
+	//int inc = smF/6 + 1;       // for optimisation of computing time for bigger smF value
+	int inc = 1;
+
+	// for optimisation purpose we limit area where computing will be performed
+	limU = nRows-1;
+	limR = 0;
+	limD = 0;
+	limL = nCols-1;
+
+	for( i=0; i<nRows; i++ )
+	{
+		rin = imIn.ptr<uchar>(i);
+		for( j=0; j<nCols; j++ )
+		{
+			// determine limits
+			if( rin[j] == 255 )
+			{
+				if( i > limD )
+					limD = i;
+				if( i < limU )
+					limU = i;
+				if( j < limL )
+					limL = j;
+				if( j > limR )
+					limR = j;
+			}
+		}
+	}
+
+	if( limL-smF <= 0 )			limL = 0;
+	else						limL -= smF;
+
+	if( limR+smF >= nCols-1 )	limR = nCols-1;
+	else						limR += smF;
+
+	if( limU-smF <= 0 )			limU = 0;
+	else						limU -= smF;
+
+	if( limD+smF >= nRows-1 )	limD = nRows-1;
+	else						limD += smF;
+
+	// for optimisation purpose - end
+
+	for( i=limU; i<=limD; i++ )
+	{
+		// determine local smoothing area
+		if( i-smF > 0 )
+			smU = i-smF;
+		else
+			smU = 0;
+
+		if( i+smF < nRows-1 )
+			smD = i+smF;
+		else
+			smD = nRows-1;
+
+		rout = imWork.ptr<uchar>(i);
+		for( j=limL; j<=limR; j++ )
+		{
+			// determine limits
+			if( j-smF > 0 )
+				smL = j-smF;
+			else
+				smL = 0;
+
+			if( j+smF < nCols-1 )
+				smR = j+smF;
+			else
+				smR = nCols-1;
+
+			float sum = 0;
+			int count = 0;
+			for( k=smU; k<=smD; k+=inc )
+			{
+				rin = imIn.ptr<uchar>(k);
+				for( l=smL; l<=smR; l+=inc )
+				{
+					sum += rin[l];
+					count++;
+				}
+			}
+			rout[j] = (uchar)(sum/count);
+		}
+	}
+	
+	// tresholding now
+	for( i=0; i<nRows; i++ )
+	{
+		rin = imWork.ptr<uchar>(i);
+		for( j=0; j<nCols; j++ )
+		{
+			if( rin[j] <= 128 )
+				rin[j] = 0;
+			else
+				rin[j] = 255;
+		}
+	}
+
+	//alternatively with using OpenCV methods:
+	//cv::blur( imIn, imOut, cv::Size( 2*smF,2*smF) );
+	//cv::threshold( imOut, imWork, 128, 255, THRESH_BINARY );
+
+	find_perimeter( imWork, imOut );
+
+	return 0;
+}
+
+
+//----------------------------------------
+
+/**
+Input:
 iFileLoaded      - control variable, it decides how the menu should look like, allows to show appropriate menus options
 iRegDetermined   -                   -||-
 iPerimDetermined -                   -||-
@@ -413,8 +557,8 @@ int showMenu( const int iFileLoaded, const int iRegDetermined, const int iPerimD
 		iAllowTab[2] = 1;  // 
 
 		// for debug only
-		//cout << "11 = save RGB image to the text file," << endl;
-		//iAllowTab[11] = 1;  // 
+		//cout << "15 = save RGB image to the text file," << endl;
+		//iAllowTab[15] = 1;  // 
 
 		cout << "3 = find region of similar color," << endl;
 		iAllowTab[3] = 1;  // 
@@ -430,22 +574,25 @@ int showMenu( const int iFileLoaded, const int iRegDetermined, const int iPerimD
 		cout << "6 = find perimeter," << endl;
 		iAllowTab[6] = 1;  // 
 
-		if( iPerimDetermined )
-		{
-		cout << "7 = display perimeter (pixels)," << endl;
+		cout << "7 = find smooth perimeter," << endl;
 		iAllowTab[7] = 1;  // 
 
-		cout << "8 = save perimeter to the file," << endl;
+		if( iPerimDetermined )
+		{
+		cout << "8 = display perimeter (pixels)," << endl;
 		iAllowTab[8] = 1;  // 
+
+		cout << "9 = save perimeter to the file," << endl;
+		iAllowTab[9] = 1;  // 
 		}
 
-		cout << "9 = save region to text file," << endl;
-		iAllowTab[9] = 1;  // 
+		cout << "10 = save region to text file," << endl;
+		iAllowTab[10] = 1;  // 
 
 		if( iPerimDetermined )
 		{
-		cout << "10 = save perimeter to text file," << endl;
-		iAllowTab[10] = 1;  // 
+		cout << "11 = save perimeter to text file," << endl;
+		iAllowTab[11] = 1;  // 
 		}
 		}
 		}
@@ -453,8 +600,8 @@ int showMenu( const int iFileLoaded, const int iRegDetermined, const int iPerimD
 		cout << "Your choice is... ";
 
 		cin >> iChoice;
-		if( iChoice < 0 || iChoice > 10 || iAllowTab[iChoice] == 0 )
-		//if( iChoice < 0 || iChoice > 11 || iAllowTab[iChoice] == 0 )  // for debug only
+		if( iChoice < 0 || iChoice > 11 || iAllowTab[iChoice] == 0 )
+		//if( iChoice < 0 || iChoice > 15 || iAllowTab[iChoice] == 0 )  // for debug only
 		{
 			cout << "The value outside of allowed range. Try again." << endl;
 			continue;
@@ -493,6 +640,7 @@ int main( int argc, char **argv )
 	int nCols = 0;
 	int pX = nCols, pY = nRows;  // coordinates of origination point
 	int simf = 0;   // similarity factor
+	int smF = 0;    // smoothing factor
 
 	do  // the main loop of the console application interface
 	{
@@ -597,25 +745,47 @@ int main( int argc, char **argv )
 			isPerimeterDetermined = 1;
 			break;
 
-		case 7:		// show perimeter
+		case 7:		// find smooth perimeter
+			do
+			{
+				cout << "Enter the smoothing factor [1-20]: ";
+				cin >> smF;
+				if( smF < 1 || smF > 20 )
+				{
+					cout << "The value outside of allowed range. Try again." << endl;
+					continue;
+				}
+				break;
+			} while(1);
+
+			// Drawing smooth perimeter of area with similar color
+			if( find_smooth_perimeter( region, smF, perimeter ) != 0 )
+				break;
+
+			cout << endl << "The perimeter has been determined!" << endl << endl;
+
+			isPerimeterDetermined = 1;
+			break;
+
+		case 8:		// show perimeter
 			display_pixels( perimeter, "The perimeter of region" );
 			break;
 
-		case 8:		// save perimeter to the file
+		case 9:		// save perimeter to the file
 			cout << "Enter the output filename (with extension): ";
 			cin >> outFileName;
 
 			save_pixels( perimeter, outFileName );
 			break;
 
-		case 9:		// save region to the text file
+		case 10:		// save region to the text file
 			cout << "Enter the output filename: ";
 			cin >> outFileName;
 
 			save_to_text_file( region, outFileName );
 			break;
 
-		case 10:	// save perimeter to the text file
+		case 11:	// save perimeter to the text file
 			cout << "Enter the output filename: ";
 			cin >> outFileName;
 
@@ -624,7 +794,7 @@ int main( int argc, char **argv )
 
 		// for debug only
 		/*
-		case 11:	// save RGB image to the text file
+		case 15:	// save RGB image to the text file
 			cout << "Enter the output filename (with extension): ";
 			cin >> outFileName;
 
