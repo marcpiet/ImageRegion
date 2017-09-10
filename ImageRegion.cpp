@@ -1,5 +1,4 @@
 
-
 #include <stdio.h>
 #include <stdlib.h>  // for abs()
 #include <opencv2/opencv.hpp>
@@ -15,11 +14,9 @@ class CPoint
         CPoint(int x, int y) : x(x), y(y) {}
 };
 
-int find_region( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
+int find_region( Mat& imIn, const int pX, const int pY, const int tf, Mat& imOut )
 {
 	int channels = imIn.channels();
-	int nRows    = imIn.rows;
-    int nCols    = imIn.cols;
 
 	/*  we assume that image is RGB */
 	if( channels != 3 )
@@ -27,6 +24,10 @@ int find_region( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 		cout << "Only RGB images can be processed" << endl;
 		return -1;   // we assume that program serves only RGB images
 	}
+
+	int nRows    = imIn.rows;
+    int nCols    = imIn.cols;
+	imOut = Mat::zeros( nRows, nCols, CV_8UC1 );
 
 	Vec3b* rin;   // input row
 	uchar* rout;  // output row
@@ -64,7 +65,6 @@ int find_region( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 			rout[x] = 255;
 
 			// check neighbours
-			// ...
 			if( y > 0 )
 			{
 				rin = imIn.ptr<Vec3b>(y-1);  // previous
@@ -140,13 +140,11 @@ int find_region( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 				else
 					rout[x+1] = 1;  // means, the point was checked
 			}
-
 			point_counter++;
 		}
 
 		iter_counter++;
-
-		cout << "DBG: iter no. " << iter_counter << ", number of added points: " << point_counter << endl;
+		//cout << "DBG: iter no. " << iter_counter << ", number of added points: " << point_counter << endl;
 
 		if( tListNew.size() == 0 )
 			break;
@@ -156,7 +154,6 @@ int find_region( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 	}
 
 	int i,j;
-	
 	// erasing of markers that pixel has been already checked
 	for( i=0; i<nRows; i++ )
 	{
@@ -166,42 +163,14 @@ int find_region( cv::Mat& imIn, int pX, int pY, int tf, cv::Mat& imOut )
 				rout[j] = 0;
 	}
 
-	/*
-	for( i=0; i<nRows; i++ )
-	{
-		p = imIn.ptr<Vec3b>(i);
-		rout = imOut.ptr<uchar>(i);
-		for( j=0; j<nCols; j++ )
-		{
-			//if( i < pY && j < pX || i > pY && j > pX )
-			if( p[j][0] + p[j][1] + p[j][2] < 370 )
-			{
-				//o[j][0] = ~p[j][0];
-				//o[j][1] = ~p[j][1];
-				//o[j][2] = ~p[j][2];
-				o[j] = 255;
-			}
-			else
-			{
-				//p[j][0] = ~p[j][0];
-				//p[j][1] = ~p[j][1];
-				//p[j][2] = ~p[j][2];
-				o[j] = 128;
-			}
-		}
-	}
-	*/
-
 	return 0;
 }
 
 //--------------------------------------------
 
-int find_perimeter( cv::Mat& imIn, cv::Mat& imOut )
+int find_perimeter( Mat& imIn, Mat& imOut )
 {
 	int channels = imIn.channels();
-	int nRows    = imIn.rows;
-    int nCols    = imIn.cols;
 
 	/*  we assume that image is gray scale */
 	if( channels != 1 )
@@ -210,39 +179,20 @@ int find_perimeter( cv::Mat& imIn, cv::Mat& imOut )
 		return -1;   // we assume that this method serves only gray scale objects
 	}
 
+	int nRows = imIn.rows;
+    int nCols = imIn.cols;
+	imOut = Mat::zeros( nRows, nCols, CV_8UC1 );
+
 	uchar* rinp;  // input row (previous)
 	uchar* rin;   // input row
 	uchar* rinn;  // input row (next)
 	uchar* rout;  // output row
 
-	/*
-	int cU = 0,
-		cUR = 0,
-		cR = 0,
-		cDR = 0,
-		cD = 0,
-		cDL = 0,
-		cL = 0,
-		cUL = 0;
-		*/
-
 	int i, j;
 
 	for( i=0; i<nRows; i++ )
 	{
-		/*
-		if( i == 0 )
-			rinp = NULL;
-		else
-			rinp = imIn.ptr<uchar>(i-1);
-		*/
 		rin = imIn.ptr<uchar>(i);
-		/*
-		if( i == nRows-1 )
-			rinn = NULL;
-		else
-			rinn = imIn.ptr<uchar>(i+1);
-		*/
 
 		for( j=0; j<nCols; j++ )
 		{
@@ -258,28 +208,6 @@ int find_perimeter( cv::Mat& imIn, cv::Mat& imOut )
 					rinp = imIn.ptr<uchar>(i-1);
 					rinn = imIn.ptr<uchar>(i+1);
 
-					/*
-					if( i == 0 )
-						cUL = cU = cUR = 0;
-					if( j == 0 )
-						cUL = cL = cDL = 0;
-					if( i == nRows-1 )
-						cDL = cD = cDR = 0;
-					if( j == nCols-1 )
-						cUR = cR = cDR = 0;
-					*/
-					/*
-					cU = rinp[j];
-					cUR = rinp[j+1];
-					cR = rin[j+1];
-					cDR = rinn[j+1];
-					cD = rinn[j];
-					cDL = rinn[j-1];
-					cL = rin[j-1];
-					cUL = rinp[j-1];
-					*/
-
-					//if( cU == 0 || cUR == 0 || cR == 0 || cDR == 0 || cD == 0 || cDL == 0 || cL == 0 || cUL == 0 )
 					if( rinp[j] == 0 || rinp[j+1] == 0 || rin[j+1] == 0 || rinn[j+1] == 0 || rinn[j] == 0 || rinn[j-1] == 0 || rin[j-1] == 0 || rinp[j-1] == 0 )
 					{
 						rout = imOut.ptr<uchar>(i);
@@ -295,18 +223,124 @@ int find_perimeter( cv::Mat& imIn, cv::Mat& imOut )
 
 //-----------------------------
 
-
-void show_mat(const cv::Mat &image, std::string const &win_name) {
-    namedWindow(win_name, WINDOW_AUTOSIZE);
-    imshow(win_name, image);
-    waitKey(0);
-	destroyWindow(win_name);
+void display_image( const Mat& image, string const& win_name )
+{
+    namedWindow( win_name, WINDOW_AUTOSIZE );
+    imshow( win_name, image );
+    waitKey( 0 );
+	destroyWindow( win_name );
+	return;
 }
 
-int showMenu( int iFileLoaded, int iRegDetermined, int iPerimDetermined )
+void display_pixels( const Mat& image, string const& win_name )
+{
+    namedWindow( win_name, WINDOW_AUTOSIZE );
+    imshow( win_name, image );
+    waitKey( 0 );
+	destroyWindow( win_name );
+	return;
+}
+
+void save_pixels( const Mat& image, string const& filename )
+{
+	imwrite( filename, image );
+	return;
+}
+
+#include <iostream>
+#include <fstream>
+
+void save_to_text_file( Mat& image, string const& filename )
+{
+	int channels = image.channels();
+	int nRows = image.rows;
+    int nCols = image.cols;
+
+	ofstream out_file;
+	out_file.open( filename );
+
+	//if( image.depth() == CV_8U )
+	if( channels == 1 )   // GRAY_SCALE
+	{
+		out_file << "GRAY_SCALE;\n";
+	}
+	else  // RGB
+	{
+		out_file << "RGB_IMAGE;\n";
+	}
+
+	out_file << nCols << ";" << nRows << ";\n";
+
+	int iWrapCnt = 0;
+	int i, j;
+
+	if( channels == 1 )
+	{
+		uchar* rin;   // input row
+		//int cl;
+
+		for( i=0; i<nRows; i++ )
+		{
+			rin = image.ptr<uchar>(i);
+			for( j=0; j<nCols; j++ )
+			{
+				//cl = rin[j];
+				if( rin[j] != 0 )
+				{
+					//out_file << i << "," << j << "," << cl << ";";
+					// we can ommit a color of pixel as we know that image (here in our application) has only two colors (black and white),
+					// thanks to it the output file will have smaller size
+					out_file << i << "," << j << ";";
+					iWrapCnt++;
+
+					if( iWrapCnt > 15 )
+					{
+						out_file << "\n";
+						iWrapCnt = 0;
+					}
+				}
+			}
+		}
+	}
+	else  // RGB  // just in case, for the future use maybe
+	{
+		Vec3b* rin;   // input row
+		int clr, clg, clb;
+
+		for( i=0; i<nRows; i++ )
+		{
+			rin = image.ptr<Vec3b>(i);
+			for( j=0; j<nCols; j++ )
+			{
+				clb = rin[j][0];
+				clg = rin[j][1];
+				clr = rin[j][2];
+				if( clb != 0 || clg != 0 || clr != 0 )  // other than black
+				{
+					out_file << i << "," << j << "," << clr << "," << clg << "," << clb << ";";
+					iWrapCnt++;
+
+					if( iWrapCnt > 10 )
+					{
+						out_file << "\n";
+						iWrapCnt = 0;
+					}
+				}
+			}
+		}
+	}
+
+	out_file.close();
+
+	return;
+}
+
+//----------------------------------------
+
+int showMenu( const int iFileLoaded, const int iRegDetermined, const int iPerimDetermined )
 {
 	int iChoice = 0;
-	int iAllowTab[8];// = {0};
+	int iAllowTab[20];
 
 	do
 	{
@@ -324,6 +358,10 @@ int showMenu( int iFileLoaded, int iRegDetermined, int iPerimDetermined )
 		{
 		cout << "2 = display loaded image," << endl;
 		iAllowTab[2] = 1;  // 
+
+		// for debug only
+		//cout << "11 = save RGB image to the text file," << endl;
+		//iAllowTab[11] = 1;  // 
 
 		cout << "3 = find region of similar color," << endl;
 		iAllowTab[3] = 1;  // 
@@ -347,13 +385,23 @@ int showMenu( int iFileLoaded, int iRegDetermined, int iPerimDetermined )
 		cout << "8 = save perimeter to the file," << endl;
 		iAllowTab[8] = 1;  // 
 		}
+
+		cout << "9 = save region to text file," << endl;
+		iAllowTab[9] = 1;  // 
+
+		if( iPerimDetermined )
+		{
+		cout << "10 = save perimeter to text file," << endl;
+		iAllowTab[10] = 1;  // 
+		}
 		}
 		}
 
 		cout << "Your choice is... ";
 
 		cin >> iChoice;
-		if( iChoice < 0 || iChoice > 8 || iAllowTab[iChoice] == 0 )
+		if( iChoice < 0 || iChoice > 10 || iAllowTab[iChoice] == 0 )
+		//if( iChoice < 0 || iChoice > 11 || iAllowTab[iChoice] == 0 )  // for debug only
 		{
 			cout << "The value outside of allowed range. Try again." << endl;
 			continue;
@@ -364,18 +412,6 @@ int showMenu( int iFileLoaded, int iRegDetermined, int iPerimDetermined )
 
 	return iChoice;
 }
-
-/*
-class CImageRGB
-{
-private:
-	;
-protected:
-	;
-public:
-	;
-}
-*/
 
 //============================================================================================
 
@@ -423,7 +459,6 @@ int main( int argc, char **argv )
 			if( !image.data )
 			{
 				printf( "No image data (warning: OpenCV recognize files by extensions)\n" );
-				//return -1;
 				break;
 			}
 			isInputFileLoaded = 1;
@@ -432,7 +467,7 @@ int main( int argc, char **argv )
 			break;
 
 		case 2:		// show loaded image
-			show_mat( image, "Input image" );
+			display_image( image, "Input image" );
 			break;
 
 		case 3:		// find region with similar color
@@ -477,11 +512,7 @@ int main( int argc, char **argv )
 				break;
 			} while(1);
 
-			//cout << "DBG: x=" << pX << ", y=" << pY << ", tf=" << tf << endl;
-
-			//========================================================
-
-			region = Mat::zeros( nRows,nCols,CV_8UC1 );
+			//-----------------
 
 			if( find_region( image, pX, pY, tf, region ) != 0 )
 				break;
@@ -491,24 +522,24 @@ int main( int argc, char **argv )
 			isRegionDetermined = 1;
 			isPerimeterDetermined = 0;
 
-			//=======================================
 			break;
 
 		case 4:		// show region
-			show_mat( region, "Similar region" );
+			display_pixels( region, "The region of similar pixels" );
 			break;
 		
 		case 5:		// save region to the file
 			cout << "Enter the output filename (with extension): ";
 			cin >> outFileName;
-			imwrite( outFileName, region );
+
+			save_pixels( region, outFileName );
 			break;
 
 		case 6:		// find perimeter
-			perimeter = Mat::zeros( nRows,nCols,CV_8UC1 );
-
+			
 			// Drawing perimeter of area with similar color
-			find_perimeter( region, perimeter ); //, pX, pY, tf );
+			if( find_perimeter( region, perimeter ) != 0 )
+				break;
 
 			cout << endl << "The perimeter has been determined!" << endl << endl;
 
@@ -516,14 +547,39 @@ int main( int argc, char **argv )
 			break;
 
 		case 7:		// show perimeter
-			show_mat( perimeter, "Area perimeter" );
+			display_pixels( perimeter, "The perimeter of region" );
 			break;
 
 		case 8:		// save perimeter to the file
-			cout << "Enter the file name for the output:";
+			cout << "Enter the output filename (with extension): ";
 			cin >> outFileName;
-			imwrite( outFileName, perimeter );
+
+			save_pixels( perimeter, outFileName );
 			break;
+
+		case 9:		// save region to the text file
+			cout << "Enter the output filename (with extension): ";
+			cin >> outFileName;
+
+			save_to_text_file( region, outFileName );
+			break;
+
+		case 10:	// save perimeter to the text file
+			cout << "Enter the output filename (with extension): ";
+			cin >> outFileName;
+
+			save_to_text_file( perimeter, outFileName );
+			break;
+
+		// for debug only
+		/*
+		case 11:	// save RGB image to the text file
+			cout << "Enter the output filename (with extension): ";
+			cin >> outFileName;
+
+			save_to_text_file( image, outFileName );
+			break;
+			*/
 
 		default:
 			;
@@ -608,3 +664,28 @@ cv::Mat& invert_mat_pointer(cv::Mat &mat) {
 }
 
 */
+	/*
+	for( i=0; i<nRows; i++ )
+	{
+		p = imIn.ptr<Vec3b>(i);
+		rout = imOut.ptr<uchar>(i);
+		for( j=0; j<nCols; j++ )
+		{
+			//if( i < pY && j < pX || i > pY && j > pX )
+			if( p[j][0] + p[j][1] + p[j][2] < 370 )
+			{
+				//o[j][0] = ~p[j][0];
+				//o[j][1] = ~p[j][1];
+				//o[j][2] = ~p[j][2];
+				o[j] = 255;
+			}
+			else
+			{
+				//p[j][0] = ~p[j][0];
+				//p[j][1] = ~p[j][1];
+				//p[j][2] = ~p[j][2];
+				o[j] = 128;
+			}
+		}
+	}
+	*/

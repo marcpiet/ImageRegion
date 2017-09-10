@@ -1,16 +1,19 @@
 
 ## Motivation
-    It is an exercise/test which I have to do to be allowed to the next step of reqruitment proccess - I am willing to change job.
+    It is an exercise/test which I have to do to be allowed to the next step of reqruitment proccess.
+    I am willing to change job.
 
 ## Synopsis
-    After compilation you get a console application  which can be used to display graphical files (jpg, bmp, png, etc.) in a window.
-    You can also use this app for determination of areas around pointed pixel where color is very similar. The color variation is customizable.
-    Another feature allows to draw a perimeter of determined area. The area can be sometimes very jagged so there is also option 
-    to smooth the region and to smoth the contour. Every time you can display results of operation and save it within a graphical file.
+    After compilation you get a console application  which can be used to display graphical files (jpg, bmp, png, etc.)
+    in a window. You can also use this app for determination of areas around pointed pixel where color is very similar.
+    The color variation is customizable. Another feature allows to draw a perimeter of determined area.
+    The area can be sometimes very jagged so there is also option to smooth the region and to smoth the contour.
+    Every time you can display results of operation and save it within a graphical file.
     This is also example of using openCV to load and view images.
 
 ## Methods
-    Within the source code you can find the set of generic methods, which can be potentially useful in another project. Here is the API fot them:
+    Within the source code you can find the set of generic methods, which can be potentially useful in another project.
+    Here is the API fot them:
 
  	.
 	. 
