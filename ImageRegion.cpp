@@ -14,7 +14,19 @@ class CPoint
         CPoint(int x, int y) : x(x), y(y) {}
 };
 
-int find_region( Mat& imIn, const int pX, const int pY, const int tf, Mat& imOut )
+/**
+Input:
+imIn	- reference to the matrix with input image data
+pX, pY	- coordinates of the point around which the area with similar color will be searched
+simf	- similarity factor; says how much every color component (R,G,B) can differ from origination point
+		  to by clasified to the similarity region
+Output:
+imOut	- reference to the matrix where output data can be stored
+Returned values:
+0       - operation succedded,
+-1      - operation failed.
+*/
+int find_region( Mat& imIn, const int pX, const int pY, const int simf, Mat& imOut )
 {
 	int channels = imIn.channels();
 
@@ -73,7 +85,7 @@ int find_region( Mat& imIn, const int pX, const int pY, const int tf, Mat& imOut
 				{
 					;  // already served
 				}
-				else if( abs( rin[x][0]-refB) <= tf &&  abs( rin[x][1]-refG) <= tf && abs( rin[x][2]-refR) <= tf ) 
+				else if( abs( rin[x][0]-refB) <= simf &&  abs( rin[x][1]-refG) <= simf && abs( rin[x][2]-refR) <= simf ) 
 				{
 					cp.x = x; 
 					cp.y = y-1;
@@ -92,7 +104,7 @@ int find_region( Mat& imIn, const int pX, const int pY, const int tf, Mat& imOut
 				{
 					;  // already served
 				}
-				else if( abs(rin[x][0]-refB) <= tf &&  abs(rin[x][1]-refG) <= tf && abs(rin[x][2]-refR) <= tf ) 
+				else if( abs(rin[x][0]-refB) <= simf &&  abs(rin[x][1]-refG) <= simf && abs(rin[x][2]-refR) <= simf ) 
 				{
 					cp.x = x; 
 					cp.y = y+1;
@@ -111,7 +123,7 @@ int find_region( Mat& imIn, const int pX, const int pY, const int tf, Mat& imOut
 				{
 					;  // already served
 				}
-				else if( abs(rin[x-1][0]-refB) <= tf &&  abs(rin[x-1][1]-refG) <= tf && abs(rin[x-1][2]-refR) <= tf ) 
+				else if( abs(rin[x-1][0]-refB) <= simf &&  abs(rin[x-1][1]-refG) <= simf && abs(rin[x-1][2]-refR) <= simf ) 
 				{
 					cp.x = x-1; 
 					cp.y = y;
@@ -130,7 +142,7 @@ int find_region( Mat& imIn, const int pX, const int pY, const int tf, Mat& imOut
 				{
 					;  // already served
 				}
-				else if( abs(rin[x+1][0]-refB) <= tf &&  abs(rin[x+1][1]-refG) <= tf && abs(rin[x+1][2]-refR) <= tf ) 
+				else if( abs(rin[x+1][0]-refB) <= simf &&  abs(rin[x+1][1]-refG) <= simf && abs(rin[x+1][2]-refR) <= simf ) 
 				{
 					cp.x = x+1; 
 					cp.y = y;
@@ -168,6 +180,16 @@ int find_region( Mat& imIn, const int pX, const int pY, const int tf, Mat& imOut
 
 //--------------------------------------------
 
+/**
+Input:
+imIn	- reference to the matrix with input image data
+          (2-dimensional region determined within method find_region)
+Output:
+imOut	- reference to the matrix where output data can be stored
+Returned values:
+0       - operation succedded,
+-1      - operation failed.
+*/
 int find_perimeter( Mat& imIn, Mat& imOut )
 {
 	int channels = imIn.channels();
@@ -223,6 +245,11 @@ int find_perimeter( Mat& imIn, Mat& imOut )
 
 //-----------------------------
 
+/**
+Input:
+image	 - reference to the matrix (3-dimensional) with input image data
+win_name - the name for the output window frame
+*/
 void display_image( const Mat& image, string const& win_name )
 {
     namedWindow( win_name, WINDOW_AUTOSIZE );
@@ -232,6 +259,12 @@ void display_image( const Mat& image, string const& win_name )
 	return;
 }
 
+/**
+Input:
+image	 - reference to the matrix with input image data
+          (2-dimensional region or perimeter determined earlier)
+win_name - the name for the output window frame
+*/
 void display_pixels( const Mat& image, string const& win_name )
 {
     namedWindow( win_name, WINDOW_AUTOSIZE );
@@ -241,6 +274,12 @@ void display_pixels( const Mat& image, string const& win_name )
 	return;
 }
 
+/**
+Input:
+image	 - reference to the matrix with input image data
+          (2-dimensional region or perimeter determined earlier)
+filename - the name for the output image file (with extension)
+*/
 void save_pixels( const Mat& image, string const& filename )
 {
 	imwrite( filename, image );
@@ -250,6 +289,12 @@ void save_pixels( const Mat& image, string const& filename )
 #include <iostream>
 #include <fstream>
 
+/**
+Input:
+image	 - reference to the matrix with input image data
+          (2-dimensional region or perimeter determined earlier)
+filename - the name for the output text file
+*/
 void save_to_text_file( Mat& image, string const& filename )
 {
 	int channels = image.channels();
@@ -337,6 +382,14 @@ void save_to_text_file( Mat& image, string const& filename )
 
 //----------------------------------------
 
+/**
+Input:
+iFileLoaded      - control variable, it decides how the menu should look like, allows to show appropriate menus options
+iRegDetermined   -                   -||-
+iPerimDetermined -                   -||-
+Returned values:
+iChoice          - the option, user choice from menu
+*/
 int showMenu( const int iFileLoaded, const int iRegDetermined, const int iPerimDetermined )
 {
 	int iChoice = 0;
@@ -439,7 +492,7 @@ int main( int argc, char **argv )
 	int nRows = 0;
 	int nCols = 0;
 	int pX = nCols, pY = nRows;  // coordinates of origination point
-	int tf = 0;   // tolerance factor
+	int simf = 0;   // similarity factor
 
 	do  // the main loop of the console application interface
 	{
@@ -502,9 +555,9 @@ int main( int argc, char **argv )
 
 			do
 			{
-				cout << "Enter the color tolerance factor [1-255]: ";
-				cin >> tf;
-				if( tf < 1 || tf > 100 )
+				cout << "Enter the similarity factor [1-255]: ";
+				cin >> simf;
+				if( simf < 1 || simf > 100 )
 				{
 					cout << "The value outside of allowed range. Try again." << endl;
 					continue;
@@ -514,14 +567,13 @@ int main( int argc, char **argv )
 
 			//-----------------
 
-			if( find_region( image, pX, pY, tf, region ) != 0 )
+			if( find_region( image, pX, pY, simf, region ) != 0 )
 				break;
 
 			cout << endl << "The region has been marked!" << endl << endl;
 
 			isRegionDetermined = 1;
 			isPerimeterDetermined = 0;
-
 			break;
 
 		case 4:		// show region
@@ -536,7 +588,6 @@ int main( int argc, char **argv )
 			break;
 
 		case 6:		// find perimeter
-			
 			// Drawing perimeter of area with similar color
 			if( find_perimeter( region, perimeter ) != 0 )
 				break;
@@ -558,14 +609,14 @@ int main( int argc, char **argv )
 			break;
 
 		case 9:		// save region to the text file
-			cout << "Enter the output filename (with extension): ";
+			cout << "Enter the output filename: ";
 			cin >> outFileName;
 
 			save_to_text_file( region, outFileName );
 			break;
 
 		case 10:	// save perimeter to the text file
-			cout << "Enter the output filename (with extension): ";
+			cout << "Enter the output filename: ";
 			cin >> outFileName;
 
 			save_to_text_file( perimeter, outFileName );
@@ -584,14 +635,8 @@ int main( int argc, char **argv )
 		default:
 			;
 		}
-
 	}
 	while( 1 );
-
-	//-----------------
-
-    //image = invert_mat_pointer(image);
-	//image = invert_mat(image);
 
     return 0;
 }
@@ -601,6 +646,9 @@ int main( int argc, char **argv )
 //cv::Mat& invert_mat_pointer(cv::Mat &mat);
 
 /*
+    //image = invert_mat_pointer(image);
+	//image = invert_mat(image);
+
 cv::Mat& invert_mat(cv::Mat &mat) {
     // accept only char type matrices
     CV_Assert(mat.depth() == CV_8U);
@@ -627,65 +675,4 @@ cv::Mat& invert_mat(cv::Mat &mat) {
 
     return mat;
 }
-
-cv::Mat& invert_mat_pointer(cv::Mat &mat) {
-
-	int channels = mat.channels();
-	int nRows = mat.rows;
-    int nCols = mat.cols;
-
-    int i, j;
-    switch (channels) {
-        case 1: {
-//            gray scale image
-            uchar *p;
-            for (i = 0; i < nRows; ++i) {
-                p = mat.ptr<uchar>(i);
-                for (j = 0; j < nCols; ++j) {
-                    p[j] = ~p[j];
-                }
-            }
-        }
-        case 3: {
-//            RGB image
-            Vec3b *p;
-            for (i = 0; i < nRows; ++i) {
-                p = mat.ptr<Vec3b>(i);
-                for (j = 0; j < nCols; ++j) {
-                    p[j][0] = ~p[j][0];
-                    p[j][1] = ~p[j][1];
-                    p[j][2] = ~p[j][2];
-                }
-            }
-        }
-    }
-
-    return mat;
-}
-
 */
-	/*
-	for( i=0; i<nRows; i++ )
-	{
-		p = imIn.ptr<Vec3b>(i);
-		rout = imOut.ptr<uchar>(i);
-		for( j=0; j<nCols; j++ )
-		{
-			//if( i < pY && j < pX || i > pY && j > pX )
-			if( p[j][0] + p[j][1] + p[j][2] < 370 )
-			{
-				//o[j][0] = ~p[j][0];
-				//o[j][1] = ~p[j][1];
-				//o[j][2] = ~p[j][2];
-				o[j] = 255;
-			}
-			else
-			{
-				//p[j][0] = ~p[j][0];
-				//p[j][1] = ~p[j][1];
-				//p[j][2] = ~p[j][2];
-				o[j] = 128;
-			}
-		}
-	}
-	*/
