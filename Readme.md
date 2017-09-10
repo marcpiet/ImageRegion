@@ -7,29 +7,25 @@
     After compilation you get a console application  which can be used to display graphical files
     (jpg, bmp, png, etc.) in a window. You can also use this app for determination of areas around
     pointed pixel where color is very similar. The color variation is customizable. Another feature
-    allows to draw a perimeter of determined area. The area can be sometimes very jagged so there is
+    allows to draw a perimeter of determined area.
+    The area can be sometimes very jagged so there is (should be, maybe will be soon)
     also option to smooth the region and to smoth the contour. Every time you can display results of
-    operation and save it within a graphical file. This is also example of using openCV to load and
-    view images.
+    operation and save it within a graphical file or even into text file.
+    This is also example of using openCV to load and view images.
 
 ## Methods
     Within the source code you can find the set of generic methods, which can be potentially useful
     in another project. Here is the API fot them:
 
- 	.
+	int find_region( Mat& imIn, const int pX, const int pY, const int simf, Mat& imOut ),
+	int find_perimeter( Mat& imIn, Mat& imOut ),
+	void display_image( const Mat& image, string const& win_name ),
+	void display_pixels( const Mat& image, string const& win_name ),
+	void save_pixels( const Mat& image, string const& filename ),
+	void save_to_text_file( Mat& image, string const& filename ),
+
 	. 
 	.
-	.
-	.
-	.
-	.
-	.
-	.
-	.
-	.
-	.
-	.
-
 
 
 
@@ -53,7 +49,8 @@
     You can check working of methods and algorithms on the base of some examples:
     Every time upload the mentioned image (from the test case directory), perform operation 'find region'
     with using given parameters and show results (display ...)
-    1) 
+    1) File 4.jpg, X=330, Y=210, similarity factor=15  - this example shows how axactly the algorith works     and how much details in searching of similarity region can be achieved.
+    2) 
 
 ## License
     Copying of this source code is forbidden unless you give reference to this webpage.
